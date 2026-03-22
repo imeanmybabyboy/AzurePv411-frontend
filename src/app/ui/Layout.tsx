@@ -4,8 +4,10 @@ export default function Layout() {
     return (
         <>
             <header>
+                Frontend
                 <Link to="/">Home</Link>
                 <Link to="/no-address">No address</Link>
+                <Link to="/deploy">Deploy</Link>
             </header>
 
             <main>
