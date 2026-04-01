@@ -6,6 +6,7 @@ import NotFound from "../../pages/not_found/NotFound";
 import Deploy from "../../pages/deploy/Deploy";
 import Auth from "../../pages/auth/Auth";
 import TryAuth from "../../pages/try_auth/TryAuth";
+import Reader from "../../pages/reader/Reader";
 
 export default function App() {
     return (
@@ -16,6 +17,7 @@ export default function App() {
                     <Route path="auth" element={<Auth />} />
                     <Route path="deploy" element={<Deploy />} />
                     <Route path="try-auth" element={<TryAuth />} />
+                    <Route path="reader" element={<Reader />} />
 
                     <Route path="*" element={<NotFound />} />
                 </Route>
