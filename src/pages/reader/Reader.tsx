@@ -5,18 +5,33 @@ let task: number | null = null;
 
 interface ITranslation {
     from: string;
+    transliterationFrom?: string;
     to: string;
+    transliterationTo?: string;
+}
+
+interface ILanguage {
+    name: string;
+    nativeName: string;
+    dir: string;
+}
+
+interface ILanguages {
+    [key: string]: ILanguage;
 }
 
 export default function Reader() {
     const [history, setHistory] = useState<Array<ITranslation>>([]);
     const [isAuto, setAuto] = useState<boolean>(false);
+    const [languages, setLanguages] = useState<ILanguages | null>(null);
+
     const autoRef = useRef<HTMLInputElement>(null);
+    const langFromRef = useRef<HTMLSelectElement>(null);
+    const langToRef = useRef<HTMLSelectElement>(null);
 
     useEffect(() => {
         const onSelectionEnd = () => {
             let selection = document.getSelection()?.toString()?.trim() ?? "";
-            console.log(selection, autoRef.current);
             if (selection.length > 0) {
                 if (autoRef.current?.checked) {
                     const isLocal =
@@ -25,15 +40,22 @@ export default function Reader() {
                     const backUrl = isLocal
                         ? "https://localhost:7217"
                         : "https://pv411pushenko.azurewebsites.net";
+                    const langFrom = langFromRef.current?.value ?? "en";
+                    const langTo = langToRef.current?.value ?? "uk";
 
                     fetch(
-                        `${backUrl}/Home/ApiTranslate?text=${encodeURIComponent(selection)}`,
+                        `${backUrl}/Home/ApiTranslate?lang-from=${langFrom}&lang-to=${langTo}&text-from=${encodeURIComponent(selection)}`,
                     )
-                        .then((r) => r.text())
+                        .then((r) => r.json())
                         .then((j) =>
                             setHistory((prev) => [
                                 ...prev,
-                                { from: selection, to: j },
+                                {
+                                    from: selection,
+                                    transliterationFrom: j.transliterationFrom,
+                                    to: j.translation,
+                                    transliterationTo: j.transliterationTo,
+                                },
                             ]),
                         );
                 }
@@ -55,21 +77,99 @@ export default function Reader() {
         };
     }, []);
 
+    useEffect(() => {
+        if (isAuto && languages === null) {
+            fetch(
+                "https://api.cognitive.microsofttranslator.com/languages?api-version=3.0",
+            )
+                .then((r) => r.json())
+                .then((j) => {
+                    setLanguages(j.translation);
+                });
+        }
+    }, [isAuto]);
+
+    useEffect(() => {
+        if (languages) {
+            console.log(languages);
+        }
+    }, [languages]);
+
     return (
         <>
             <label htmlFor="">
                 <input
                     type="checkbox"
                     ref={autoRef}
-                    onChange={(e) => setAuto(autoRef.current?.checked!)}
+                    onChange={() => setAuto(autoRef.current?.checked!)}
                 />
                 Автоматично перекладати виділений текст
             </label>
+
+            {isAuto && (
+                <div>
+                    {!languages ? (
+                        <span>loading...</span>
+                    ) : (
+                        <>
+                            <span>Мова оригіналу:</span>
+                            <select
+                                name=""
+                                id=""
+                                ref={langFromRef}
+                                defaultValue={"en"}
+                            >
+                                {Object.keys(languages).map((lang) => (
+                                    <option key={lang} value={lang}>
+                                        {languages[lang].name}
+                                        {languages[lang].nativeName !==
+                                        languages[lang].name
+                                            ? ` (${languages[lang].nativeName})`
+                                            : null}
+                                    </option>
+                                ))}
+                            </select>
+                            <span>Мова перекладу:</span>
+                            <select
+                                name=""
+                                id=""
+                                ref={langToRef}
+                                defaultValue={"uk"}
+                            >
+                                {Object.keys(languages).map((lang) => (
+                                    <option key={lang} value={lang}>
+                                        {languages[lang].name}
+                                        {languages[lang].nativeName !==
+                                        languages[lang].name
+                                            ? ` (${languages[lang].nativeName})`
+                                            : null}
+                                    </option>
+                                ))}
+                            </select>
+                        </>
+                    )}
+                </div>
+            )}
+
             {history.length > 0 && (
                 <div>
                     {history.map((h) => (
-                        <p>
-                            {h.from} : {h.to}
+                        <p key={h.from}>
+                            <span>
+                                {h.from} (
+                                <span style={{ fontSize: "12px" }}>
+                                    {h.transliterationFrom}
+                                </span>
+                                ):
+                            </span>{" "}
+                            <br />
+                            <span>
+                                {h.to} (
+                                <span style={{ fontSize: "12px" }}>
+                                    {h.transliterationTo}
+                                </span>
+                                )
+                            </span>
                         </p>
                     ))}
                 </div>
